@@ -3,17 +3,53 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 
-// Use environment variables if present (standard for local/Railway), 
-// otherwise fallback to the AI Studio JSON config.
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfigJson.apiKey,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfigJson.authDomain,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfigJson.projectId,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfigJson.storageBucket,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfigJson.messagingSenderId,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseConfigJson.appId,
-  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_DATABASE_ID || firebaseConfigJson.firestoreDatabaseId
+const envFirebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_DATABASE_ID,
 };
+
+const requiredKeys: Array<keyof typeof envFirebaseConfig> = [
+  'apiKey',
+  'authDomain',
+  'projectId',
+  'storageBucket',
+  'messagingSenderId',
+  'appId',
+  'firestoreDatabaseId',
+];
+
+const isProd = import.meta.env.PROD;
+const hasCompleteEnvConfig = requiredKeys.every((key) => Boolean(envFirebaseConfig[key]));
+
+if (isProd && !hasCompleteEnvConfig) {
+  const missingKeys = requiredKeys.filter((key) => !envFirebaseConfig[key]).join(', ');
+  throw new Error(
+    `Missing Firebase env vars in production: ${missingKeys}. ` +
+      'Set VITE_FIREBASE_* variables in Railway to your Firebase project values.'
+  );
+}
+
+const firebaseConfig = hasCompleteEnvConfig
+  ? envFirebaseConfig
+  : {
+      // Local/dev fallback for quick setup when .env is not configured.
+      apiKey: firebaseConfigJson.apiKey,
+      authDomain: firebaseConfigJson.authDomain,
+      projectId: firebaseConfigJson.projectId,
+      storageBucket: firebaseConfigJson.storageBucket,
+      messagingSenderId: firebaseConfigJson.messagingSenderId,
+      appId: firebaseConfigJson.appId,
+      firestoreDatabaseId: firebaseConfigJson.firestoreDatabaseId,
+    };
+
+console.info(
+  `[Firebase] Using project "${firebaseConfig.projectId}" (${hasCompleteEnvConfig ? 'env' : 'json fallback'})`
+);
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);

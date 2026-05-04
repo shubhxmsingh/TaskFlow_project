@@ -26,6 +26,26 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function getAuthErrorMessage(error: any) {
+  const code = error?.code as string | undefined;
+  switch (code) {
+    case 'auth/operation-not-allowed':
+      return 'This sign-in method is disabled in Firebase. Enable Email/Password and Google in Firebase Authentication > Sign-in method.';
+    case 'auth/unauthorized-domain':
+      return 'This domain is not authorized in Firebase. Add your Railway domain to Authentication > Settings > Authorized domains.';
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'Invalid email or password.';
+    case 'auth/email-already-in-use':
+      return 'This email is already registered. Try signing in instead.';
+    case 'auth/popup-closed-by-user':
+      return 'Google sign-in popup was closed before completing login.';
+    default:
+      return error?.message || 'Authentication failed. Please try again.';
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -65,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast.success('Signed in successfully');
     } catch (error) {
       console.error(error);
-      toast.error('Failed to sign in');
+      toast.error(getAuthErrorMessage(error));
     }
   };
 
@@ -75,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast.success('Welcome back!');
     } catch (error: any) {
       console.error(error);
-      toast.error(error.message || 'Failed to sign in');
+      toast.error(getAuthErrorMessage(error));
     }
   };
 
@@ -99,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast.success('Account created!');
     } catch (error: any) {
       console.error(error);
-      toast.error(error.message || 'Failed to create account');
+      toast.error(getAuthErrorMessage(error));
     }
   };
 
