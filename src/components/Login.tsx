@@ -8,12 +8,6 @@ export function Login() {
   const { signIn, signInEmail, signUpEmail } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const quickCredentials = [
-    { label: 'Admin', email: 'admin@taskflow.pro', password: 'Admin@123' },
-    { label: 'Employee', email: 'employee@taskflow.pro', password: 'Employee@123' },
-    { label: 'Manager', email: 'manager@taskflow.pro', password: 'Manager@123' },
-  ] as const;
   
   const [formData, setFormData] = useState({
     email: '',
@@ -40,15 +34,6 @@ export function Login() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const applyQuickCredential = (email: string, password: string) => {
-    setIsSignUp(false);
-    setFormData((prev) => ({
-      ...prev,
-      email,
-      password,
-    }));
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--color-brand-bg)] p-4">
       <motion.div 
@@ -57,10 +42,10 @@ export function Login() {
         className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl border border-black/5"
       >
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-black text-white rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <div className="w-16 h-16 bg-black text-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-black/10">
             <Layout size={32} />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">TaskFlow Pro</h1>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">TaskFlow</h1>
           <p className="text-gray-500">
             {isSignUp ? 'Create your team account' : 'Sign in to management portal'}
           </p>
@@ -154,29 +139,6 @@ export function Login() {
             )}
           </button>
         </form>
-
-        {!isSignUp && (
-          <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">
-              Quick Credentials
-            </p>
-            <div className="space-y-2">
-              {quickCredentials.map((cred) => (
-                <button
-                  key={cred.label}
-                  type="button"
-                  onClick={() => applyQuickCredential(cred.email, cred.password)}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-sm hover:border-black/20 hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-semibold text-gray-800">{cred.label}</span>
-                  <span className="block text-xs text-gray-500">
-                    {cred.email} / {cred.password}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div className="relative my-8">
           <div className="absolute inset-0 flex items-center">
