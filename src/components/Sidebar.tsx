@@ -3,8 +3,8 @@ import { useAuth } from './AuthProvider';
 import { cn } from '../lib/utils';
 
 interface SidebarProps {
-  activeTab: 'dashboard' | 'projects';
-  onTabChange: (tab: 'dashboard' | 'projects') => void;
+  activeTab: 'dashboard' | 'tasks';
+  onTabChange: (tab: 'dashboard' | 'tasks') => void;
 }
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
@@ -12,7 +12,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 
   const menuItems = [
     { id: 'dashboard', icon: Layout, label: 'Dashboard' },
-    { id: 'projects', icon: FolderKanban, label: 'Projects' },
+    { id: 'tasks', icon: FolderKanban, label: 'Tasks' },
   ];
 
   return (

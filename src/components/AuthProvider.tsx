@@ -11,7 +11,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
-import { UserProfile, Role } from '../types';
+import { Role, UserProfile } from '../types';
 import toast from 'react-hot-toast';
 
 interface AuthContextType {
@@ -53,28 +53,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        const profileDoc = await getDoc(doc(db, 'users', user.uid));
-        if (profileDoc.exists()) {
-          setProfile(profileDoc.data() as UserProfile);
+      try {
+        setUser(user);
+        if (user) {
+          const profileRef = doc(db, 'users', user.uid);
+          const profileDoc = await getDoc(profileRef);
+          if (profileDoc.exists()) {
+            setProfile(profileDoc.data() as UserProfile);
+          } else {
+            // Fallback profile for first login.
+            const newProfile: UserProfile = {
+              uid: user.uid,
+              email: user.email || '',
+              displayName: user.displayName || 'User',
+              ...(user.photoURL ? { photoURL: user.photoURL } : {}),
+              role: 'employee',
+              createdAt: new Date().toISOString(),
+            };
+            await setDoc(profileRef, newProfile);
+            setProfile(newProfile);
+          }
         } else {
-          // This fallback is mainly for Google sign-in where we don't have the role yet
-          const newProfile: UserProfile = {
-            uid: user.uid,
-            email: user.email!,
-            displayName: user.displayName || 'User',
-            photoURL: user.photoURL || undefined,
-            role: 'member',
-            createdAt: new Date().toISOString(),
-          };
-          await setDoc(doc(db, 'users', user.uid), newProfile);
-          setProfile(newProfile);
+          setProfile(null);
         }
-      } else {
-        setProfile(null);
+      } catch (error: any) {
+        console.error(error);
+        if (user) {
+          // Avoid white-screen crash if Firestore rules are misconfigured.
+          setProfile({
+            uid: user.uid,
+            email: user.email || '',
+            displayName: user.displayName || 'User',
+            ...(user.photoURL ? { photoURL: user.photoURL } : {}),
+            role: 'employee',
+            createdAt: new Date().toISOString(),
+          });
+        }
+        toast.error('Firestore permission issue. Please update Firestore security rules.');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
   }, []);
 
@@ -110,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         uid: user.uid,
         email: user.email!,
         displayName: name,
-        role: role,
+        role,
         createdAt: new Date().toISOString(),
       };
       
@@ -118,6 +136,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(newProfile);
       toast.success('Account created!');
     } catch (error: any) {
+      if (error?.code === 'auth/email-already-in-use') {
+        try {
+          await signInWithEmailAndPassword(auth, email, pass);
+          toast.success('Account already exists. Signed you in instead.');
+          return;
+        } catch {
+          toast.error('This email is already registered. Please use Sign In.');
+          return;
+        }
+      }
       console.error(error);
       toast.error(getAuthErrorMessage(error));
     }

@@ -19,7 +19,7 @@ export function Login() {
     email: '',
     password: '',
     name: '',
-    role: 'member' as Role
+    role: 'employee' as Role,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,17 +91,18 @@ export function Login() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-1 text-gray-700">Role</label>
+                  <label className="block text-sm font-semibold mb-1 text-gray-700">Account Type</label>
                   <div className="relative">
                     <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <select 
+                    <select
                       name="role"
                       className="input-field pl-10 appearance-none"
                       value={formData.role}
                       onChange={handleChange}
                     >
-                      <option value="member">Employee (Member)</option>
-                      <option value="admin">Manager (Admin)</option>
+                      <option value="admin">Admin</option>
+                      <option value="manager">Manager</option>
+                      <option value="employee">Employee</option>
                     </select>
                   </div>
                 </div>
@@ -206,8 +207,7 @@ export function Login() {
 
         <div className="mt-8 pt-6 border-t border-gray-50 bg-gray-50/50 -mx-8 -mb-8 rounded-b-2xl p-6">
           <p className="text-xs text-center text-gray-400 leading-relaxed italic">
-            Managers (Admins) can create projects and assign tasks.<br/>
-            Employees (Members) can update their assigned task status.
+            Create projects, assign tasks, and track progress in one place.
           </p>
         </div>
       </motion.div>

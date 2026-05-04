@@ -3,15 +3,13 @@ import { Toaster } from 'react-hot-toast';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 import { Dashboard } from './components/Dashboard';
-import { ProjectsList } from './components/ProjectsList';
 import { Sidebar } from './components/Sidebar';
-import { ProjectDetail } from './components/ProjectDetail';
 import { Login } from './components/Login';
+import { TaskCenter } from './components/TaskCenter';
 
 function MainApp() {
   const { user, profile, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'projects'>('dashboard');
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'tasks'>('dashboard');
 
   if (loading) {
     return (
@@ -25,18 +23,12 @@ function MainApp() {
     return <Login />;
   }
 
-  const handleProjectSelect = (id: string) => {
-    setSelectedProjectId(id);
-    setActiveTab('projects');
-  };
-
   return (
     <div className="min-h-screen flex bg-[var(--color-brand-bg)]">
       <Sidebar 
         activeTab={activeTab} 
         onTabChange={(tab) => {
           setActiveTab(tab);
-          setSelectedProjectId(null);
         }} 
       />
       
@@ -49,28 +41,16 @@ function MainApp() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <Dashboard onSelectProject={handleProjectSelect} />
-            </motion.div>
-          ) : selectedProjectId ? (
-            <motion.div
-              key="project-detail"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-            >
-              <ProjectDetail 
-                projectId={selectedProjectId} 
-                onBack={() => setSelectedProjectId(null)} 
-              />
+              <Dashboard />
             </motion.div>
           ) : (
             <motion.div
-              key="projects"
+              key="tasks"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <ProjectsList onSelect={handleProjectSelect} />
+              <TaskCenter />
             </motion.div>
           )}
         </AnimatePresence>
