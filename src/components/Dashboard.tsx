@@ -4,6 +4,7 @@ import { useAuth } from './AuthProvider';
 import { api } from '../lib/api';
 import { Task } from '../types';
 import { formatDate } from '../lib/utils';
+import { motion } from 'motion/react';
 
 export function Dashboard() {
   const { profile } = useAuth();
@@ -43,32 +44,38 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {[
-          { label: 'Total', value: stats.total, icon: ListChecks },
-          { label: 'To Do', value: stats.todo, icon: Clock },
-          { label: 'In Progress', value: stats.inProgress, icon: Clock },
-          { label: 'Completed', value: stats.completed, icon: CheckCircle2 },
-          { label: 'Overdue', value: stats.overdue, icon: AlertCircle },
-        ].map((card) => (
-          <div key={card.label} className="card p-4">
+          { label: 'Total', value: stats.total, icon: ListChecks, bg: 'from-indigo-500 to-violet-500' },
+          { label: 'To Do', value: stats.todo, icon: Clock, bg: 'from-cyan-500 to-blue-500' },
+          { label: 'In Progress', value: stats.inProgress, icon: Clock, bg: 'from-amber-500 to-orange-500' },
+          { label: 'Completed', value: stats.completed, icon: CheckCircle2, bg: 'from-emerald-500 to-teal-500' },
+          { label: 'Overdue', value: stats.overdue, icon: AlertCircle, bg: 'from-rose-500 to-pink-500' },
+        ].map((card, index) => (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.06 }}
+            key={card.label}
+            className={`rounded-2xl p-4 text-white shadow-[0_12px_24px_rgba(0,0,0,0.16)] bg-gradient-to-br ${card.bg}`}
+          >
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500">{card.label}</p>
-              <card.icon size={16} className="text-gray-400" />
+              <p className="text-sm text-white/85">{card.label}</p>
+              <card.icon size={16} className="text-white/90" />
             </div>
-            <p className="text-2xl font-bold mt-2">{card.value}</p>
-          </div>
+            <p className="text-3xl font-bold mt-2">{card.value}</p>
+          </motion.div>
         ))}
       </div>
 
-      <div className="card p-5">
+      <div className="card p-5 bg-gradient-to-br from-white to-indigo-50/40">
         <h3 className="font-semibold mb-3">Recent Tasks</h3>
         <div className="space-y-3">
           {recentTasks.length === 0 ? (
             <p className="text-sm text-gray-500">No tasks found.</p>
           ) : (
             recentTasks.map((task) => (
-              <div key={task.id} className="border rounded-lg p-3">
-                <p className="font-medium">{task.title}</p>
-                <p className="text-xs text-gray-500">
+              <div key={task.id} className="border border-indigo-100 rounded-xl p-3 bg-white/80">
+                <p className="font-medium text-gray-900">{task.title}</p>
+                <p className="text-xs text-gray-600">
                   {task.managerName} → {task.employeeName} | {task.status} | {formatDate(task.endDate)}
                 </p>
               </div>
@@ -78,7 +85,7 @@ export function Dashboard() {
       </div>
 
       {profile?.role === 'admin' && (
-        <div className="card p-5">
+        <div className="card p-5 bg-gradient-to-br from-white to-cyan-50/40">
           <h3 className="font-semibold mb-3">Manager to Employee Assignments</h3>
           <div className="space-y-2">
             {assignmentView.length === 0 ? (

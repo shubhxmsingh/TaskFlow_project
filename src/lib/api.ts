@@ -4,13 +4,12 @@ import {
   doc,
   getDoc,
   getDocs,
-  orderBy,
   query,
   updateDoc,
   where,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Role, Task, TaskPriority, TaskStatus, UserProfile } from '../types';
+import { Project, Role, Task, TaskPriority, TaskStatus, UserProfile } from '../types';
 
 export const api = {
   async getUsers(role?: Role) {
@@ -24,10 +23,10 @@ export const api = {
     const tasksRef = collection(db, 'tasks');
     const q =
       role === 'admin'
-        ? query(tasksRef, orderBy('createdAt', 'desc'))
+        ? query(tasksRef)
         : role === 'manager'
-          ? query(tasksRef, where('managerId', '==', userId), orderBy('createdAt', 'desc'))
-          : query(tasksRef, where('employeeId', '==', userId), orderBy('createdAt', 'desc'));
+          ? query(tasksRef, where('managerId', '==', userId))
+          : query(tasksRef, where('employeeId', '==', userId));
     const snap = await getDocs(q);
 
     const managerIds = new Set<string>();
@@ -47,14 +46,16 @@ export const api = {
     );
 
     return {
-      tasks: snap.docs.map((d) => {
-        const row = { id: d.id, ...d.data() } as Task;
-        return {
-          ...row,
-          managerName: usersMap.get(row.managerId) || row.managerId,
-          employeeName: usersMap.get(row.employeeId) || row.employeeId,
-        };
-      }),
+      tasks: snap.docs
+        .map((d) => {
+          const row = { id: d.id, ...d.data() } as Task;
+          return {
+            ...row,
+            managerName: usersMap.get(row.managerId) || row.managerId,
+            employeeName: usersMap.get(row.employeeId) || row.employeeId,
+          };
+        })
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     };
   },
 
@@ -67,6 +68,7 @@ export const api = {
     priority: TaskPriority;
     startDate: string;
     endDate: string;
+    projectId?: string;
   }) {
     const now = new Date().toISOString();
     const payload: Omit<Task, 'id' | 'managerName' | 'employeeName'> = {
@@ -74,6 +76,7 @@ export const api = {
       description: input.description.trim(),
       managerId: input.managerId,
       employeeId: input.employeeId,
+      ...(input.projectId ? { projectId: input.projectId } : {}),
       status: 'todo',
       priority: input.priority,
       startDate: input.startDate,
@@ -83,6 +86,76 @@ export const api = {
     };
     const ref = await addDoc(collection(db, 'tasks'), payload);
     return { task: { id: ref.id, ...payload } };
+  },
+
+  async getProjects(userId: string, role: Role) {
+    const projectsRef = collection(db, 'projects');
+    const q =
+      role === 'admin'
+        ? query(projectsRef)
+        : role === 'manager'
+          ? query(projectsRef, where('managerId', '==', userId))
+          : query(projectsRef, where('memberIds', 'array-contains', userId));
+    const snap = await getDocs(q);
+    return {
+      projects: snap.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Project))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    };
+  },
+
+  async createProject(input: {
+    managerId: string;
+    name: string;
+    description: string;
+    memberIds: string[];
+  }) {
+    const now = new Date().toISOString();
+    const uniqueMemberIds = [...new Set([input.managerId, ...input.memberIds])];
+    const payload: Omit<Project, 'id'> = {
+      name: input.name.trim(),
+      description: input.description.trim(),
+      managerId: input.managerId,
+      memberIds: uniqueMemberIds,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const ref = await addDoc(collection(db, 'projects'), payload);
+    return { project: { id: ref.id, ...payload } };
+  },
+
+  async getProjectMembers(project: Project) {
+    const members = await Promise.all(
+      project.memberIds.map(async (uid) => {
+        const userDoc = await getDoc(doc(db, 'users', uid));
+        if (!userDoc.exists()) {
+          return {
+            uid,
+            email: uid,
+            displayName: uid,
+            role: 'employee' as Role,
+            createdAt: '',
+          } as UserProfile;
+        }
+        return { uid: userDoc.id, ...userDoc.data() } as UserProfile;
+      })
+    );
+    return { members };
+  },
+
+  async getProjectTasks(projectId: string, userId: string, role: Role) {
+    const tasksRef = collection(db, 'tasks');
+    const base = query(tasksRef, where('projectId', '==', projectId));
+    const q =
+      role === 'employee'
+        ? query(tasksRef, where('projectId', '==', projectId), where('employeeId', '==', userId))
+        : base;
+    const snap = await getDocs(q);
+    return {
+      tasks: snap.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Task))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    };
   },
 
   async editTask(

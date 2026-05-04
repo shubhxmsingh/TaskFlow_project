@@ -29,5 +29,13 @@
   .input-field {
     @apply w-full bg-white border border-[var(--color-brand-line)] rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-black/10 focus:border-black/20 transition-all;
   }
+
+  .glass-input {
+    @apply w-full rounded-xl px-3 py-2 border border-white/55 bg-white/30 backdrop-blur-xl text-slate-900 placeholder:text-slate-500/80 outline-none focus:border-white/80 focus:ring-2 focus:ring-white/45 transition-all;
+  }
+
+  .glass-panel {
+    @apply border border-white/45 bg-white/18 backdrop-blur-2xl;
+  }
 }
 

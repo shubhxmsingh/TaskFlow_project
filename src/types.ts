@@ -14,6 +14,7 @@ export type TaskPriority = 'low' | 'medium' | 'high';
 
 export interface Task {
   id: string;
+  projectId?: string;
   title: string;
   description: string;
   managerId: string;
@@ -24,6 +25,16 @@ export interface Task {
   priority: TaskPriority;
   startDate: string;
   endDate: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  managerId: string;
+  memberIds: string[];
   createdAt: string;
   updatedAt?: string;
 }

@@ -2,15 +2,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from './AuthProvider';
 import { api } from '../lib/api';
-import { Task, TaskStatus, UserProfile } from '../types';
+import { Project, Task, TaskStatus, UserProfile } from '../types';
 import { formatDate } from '../lib/utils';
 
 export function TaskCenter() {
   const { profile, loading: authLoading } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [employees, setEmployees] = useState<UserProfile[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
+    projectId: '',
     title: '',
     description: '',
     employeeId: '',
@@ -33,7 +35,11 @@ export function TaskCenter() {
         canAssign ? api.getUsers('employee') : Promise.resolve({ users: [] }),
         canAssign ? api.getUsers() : Promise.resolve({ users: [] }),
       ]);
+      const projectResult = canAssign
+        ? await api.getProjects(profile.uid, profile.role)
+        : { projects: [] as Project[] };
       setTasks(taskResult.tasks);
+      setProjects(projectResult.projects);
       const explicitEmployees = employeeResult.users;
       const fallbackEmployees = allUsersResult.users.filter(
         (u) => u.uid !== profile.uid && u.role !== 'admin'
@@ -41,7 +47,11 @@ export function TaskCenter() {
       const resolvedEmployees = explicitEmployees.length > 0 ? explicitEmployees : fallbackEmployees;
       setEmployees(resolvedEmployees);
       if (canAssign && resolvedEmployees.length > 0 && !form.employeeId) {
-        setForm((prev) => ({ ...prev, employeeId: resolvedEmployees[0].uid }));
+        setForm((prev) => ({
+          ...prev,
+          employeeId: resolvedEmployees[0].uid,
+          projectId: projectResult.projects[0]?.id || prev.projectId,
+        }));
       }
     } catch (error: any) {
       toast.error(error?.message || 'Failed to load tasks');
@@ -70,6 +80,7 @@ export function TaskCenter() {
         priority: form.priority,
         startDate: form.startDate,
         endDate: form.endDate,
+        projectId: form.projectId || undefined,
       });
       toast.success('Task assigned');
       setForm((prev) => ({ ...prev, title: '', description: '' }));
@@ -137,7 +148,25 @@ export function TaskCenter() {
             value={form.description}
             onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
           />
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <select
+              className="input-field"
+              value={form.projectId}
+              onChange={(e) => setForm((prev) => ({ ...prev, projectId: e.target.value }))}
+              required
+            >
+              {projects.length === 0 ? (
+                <option value="" disabled>
+                  Create project first
+                </option>
+              ) : (
+                projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))
+              )}
+            </select>
             <select
               className="input-field"
               value={form.employeeId}

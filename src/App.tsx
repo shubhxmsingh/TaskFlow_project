@@ -6,10 +6,11 @@ import { Dashboard } from './components/Dashboard';
 import { Sidebar } from './components/Sidebar';
 import { Login } from './components/Login';
 import { TaskCenter } from './components/TaskCenter';
+import { ProjectsCenter } from './components/ProjectsCenter';
 
 function MainApp() {
   const { user, profile, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'tasks'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'tasks' | 'projects'>('dashboard');
 
   if (loading) {
     return (
@@ -43,7 +44,7 @@ function MainApp() {
             >
               <Dashboard />
             </motion.div>
-          ) : (
+          ) : activeTab === 'tasks' ? (
             <motion.div
               key="tasks"
               initial={{ opacity: 0, x: 20 }}
@@ -51,6 +52,15 @@ function MainApp() {
               exit={{ opacity: 0, x: -20 }}
             >
               <TaskCenter />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="projects"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <ProjectsCenter />
             </motion.div>
           )}
         </AnimatePresence>
