@@ -6,7 +6,7 @@ import { Task, TaskStatus, UserProfile } from '../types';
 import { formatDate } from '../lib/utils';
 
 export function TaskCenter() {
-  const { profile } = useAuth();
+  const { profile, loading: authLoading } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [employees, setEmployees] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,17 +22,26 @@ export function TaskCenter() {
   const canAssign = profile?.role === 'manager';
 
   const load = async () => {
-    if (!profile) return;
+    if (!profile) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const [taskResult, usersResult] = await Promise.all([
+      const [taskResult, employeeResult, allUsersResult] = await Promise.all([
         api.getTasks(profile.uid, profile.role),
         canAssign ? api.getUsers('employee') : Promise.resolve({ users: [] }),
+        canAssign ? api.getUsers() : Promise.resolve({ users: [] }),
       ]);
       setTasks(taskResult.tasks);
-      setEmployees(usersResult.users);
-      if (canAssign && usersResult.users.length > 0 && !form.employeeId) {
-        setForm((prev) => ({ ...prev, employeeId: usersResult.users[0].uid }));
+      const explicitEmployees = employeeResult.users;
+      const fallbackEmployees = allUsersResult.users.filter(
+        (u) => u.uid !== profile.uid && u.role !== 'admin'
+      );
+      const resolvedEmployees = explicitEmployees.length > 0 ? explicitEmployees : fallbackEmployees;
+      setEmployees(resolvedEmployees);
+      if (canAssign && resolvedEmployees.length > 0 && !form.employeeId) {
+        setForm((prev) => ({ ...prev, employeeId: resolvedEmployees[0].uid }));
       }
     } catch (error: any) {
       toast.error(error?.message || 'Failed to load tasks');
@@ -42,8 +51,9 @@ export function TaskCenter() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     load();
-  }, [profile?.uid, profile?.role]);
+  }, [authLoading, profile?.uid, profile?.role]);
 
   const canEmployeeUpdate = useMemo(() => profile?.role === 'employee', [profile?.role]);
 
@@ -95,7 +105,8 @@ export function TaskCenter() {
     }
   };
 
-  if (loading) return <div className="p-6">Loading tasks...</div>;
+  if (authLoading || loading) return <div className="p-6">Loading tasks...</div>;
+  if (!profile) return <div className="p-6 text-gray-500">Please sign in again to load tasks.</div>;
 
   return (
     <div className="space-y-6">
@@ -133,11 +144,17 @@ export function TaskCenter() {
               onChange={(e) => setForm((prev) => ({ ...prev, employeeId: e.target.value }))}
               required
             >
-              {employees.map((emp) => (
-                <option key={emp.uid} value={emp.uid}>
-                  {emp.displayName}
+              {employees.length === 0 ? (
+                <option value="" disabled>
+                  No employees available
                 </option>
-              ))}
+              ) : (
+                employees.map((emp) => (
+                  <option key={emp.uid} value={emp.uid}>
+                    {emp.displayName}
+                  </option>
+                ))
+              )}
             </select>
             <select
               className="input-field"

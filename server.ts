@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { initializeApp } from 'firebase/app';
 import { addDoc, collection, doc, getDoc, getDocs, getFirestore, limit, orderBy, query, updateDoc, where } from 'firebase/firestore';
+import firebaseConfigJson from './firebase-applet-config.json';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -31,15 +32,43 @@ interface TaskRecord {
   createdAt: string;
 }
 
-const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY || '',
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: process.env.VITE_FIREBASE_APP_ID || '',
+const envFirebaseConfig = {
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID,
 };
-const firebaseDatabaseId = process.env.VITE_FIREBASE_DATABASE_ID || undefined;
+
+const requiredKeys: Array<keyof typeof envFirebaseConfig> = [
+  'apiKey',
+  'authDomain',
+  'projectId',
+  'storageBucket',
+  'messagingSenderId',
+  'appId',
+];
+
+const hasCompleteEnvConfig = requiredKeys.every((key) => Boolean(envFirebaseConfig[key]));
+
+const firebaseConfig = hasCompleteEnvConfig
+  ? envFirebaseConfig
+  : {
+      apiKey: firebaseConfigJson.apiKey,
+      authDomain: firebaseConfigJson.authDomain,
+      projectId: firebaseConfigJson.projectId,
+      storageBucket: firebaseConfigJson.storageBucket,
+      messagingSenderId: firebaseConfigJson.messagingSenderId,
+      appId: firebaseConfigJson.appId,
+    };
+
+const firebaseDatabaseId = process.env.VITE_FIREBASE_DATABASE_ID || firebaseConfigJson.firestoreDatabaseId || undefined;
+
+console.info(
+  `[Server Firebase] Using project "${firebaseConfig.projectId}" (${hasCompleteEnvConfig ? 'env' : 'json fallback'})`
+);
+console.info(`[Server Firebase] Firestore DB: ${firebaseDatabaseId || '(default)'}`);
 const firebaseApp = initializeApp(firebaseConfig);
 const db = firebaseDatabaseId ? getFirestore(firebaseApp, firebaseDatabaseId) : getFirestore(firebaseApp);
 

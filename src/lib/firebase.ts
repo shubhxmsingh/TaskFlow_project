@@ -43,7 +43,7 @@ const firebaseConfig = hasCompleteEnvConfig
       storageBucket: firebaseConfigJson.storageBucket,
       messagingSenderId: firebaseConfigJson.messagingSenderId,
       appId: firebaseConfigJson.appId,
-      firestoreDatabaseId: firebaseConfigJson.firestoreDatabaseId,
+      firestoreDatabaseId: import.meta.env.VITE_FIREBASE_DATABASE_ID,
     };
 
 console.info(
@@ -51,7 +51,9 @@ console.info(
 );
 
 const app = initializeApp(firebaseConfig);
-export const db = firebaseConfig.firestoreDatabaseId
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || firebaseConfigJson.firestoreDatabaseId;
+export const db = firestoreDatabaseId
+  ? getFirestore(app, firestoreDatabaseId)
   : getFirestore(app);
+console.info(`[Firebase] Firestore DB: ${firestoreDatabaseId || '(default)'}`);
 export const auth = getAuth(app);
