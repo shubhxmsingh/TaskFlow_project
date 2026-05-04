@@ -8,6 +8,12 @@ export function Login() {
   const { signIn, signInEmail, signUpEmail } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const quickCredentials = [
+    { label: 'Admin', email: 'admin@taskflow.pro', password: 'Admin@123' },
+    { label: 'Employee', email: 'employee@taskflow.pro', password: 'Employee@123' },
+    { label: 'Manager', email: 'manager@taskflow.pro', password: 'Manager@123' },
+  ] as const;
   
   const [formData, setFormData] = useState({
     email: '',
@@ -32,6 +38,15 @@ export function Login() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const applyQuickCredential = (email: string, password: string) => {
+    setIsSignUp(false);
+    setFormData((prev) => ({
+      ...prev,
+      email,
+      password,
+    }));
   };
 
   return (
@@ -138,6 +153,29 @@ export function Login() {
             )}
           </button>
         </form>
+
+        {!isSignUp && (
+          <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">
+              Quick Credentials
+            </p>
+            <div className="space-y-2">
+              {quickCredentials.map((cred) => (
+                <button
+                  key={cred.label}
+                  type="button"
+                  onClick={() => applyQuickCredential(cred.email, cred.password)}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-sm hover:border-black/20 hover:bg-gray-50 transition-colors"
+                >
+                  <span className="font-semibold text-gray-800">{cred.label}</span>
+                  <span className="block text-xs text-gray-500">
+                    {cred.email} / {cred.password}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="relative my-8">
           <div className="absolute inset-0 flex items-center">

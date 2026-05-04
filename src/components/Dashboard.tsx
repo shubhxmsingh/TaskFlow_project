@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { collectionGroup, query, where, getDocs, collection, orderBy, limit } from 'firebase/firestore';
+import { collectionGroup, query, where, getDocs, getCountFromServer, orderBy, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './AuthProvider';
-import { Task, Project } from '../types';
+import { Task } from '../types';
 import { CheckCircle2, Clock, ListChecks, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { formatDate } from '../lib/utils';
@@ -28,28 +28,41 @@ export function Dashboard({ onSelectProject }: DashboardProps) {
 
     const fetchStats = async () => {
       try {
-        // In a real app we'd use Firestore rules to only query user's tasks
-        // Since tasks are in projects/{id}/tasks, we use collectionGroup
-        const tasksQuery = query(
+        const tasksBaseQuery = query(
           collectionGroup(db, 'tasks'),
           where('assigneeId', '==', profile.uid)
         );
-        
-        const snapshot = await getDocs(tasksQuery);
-        const tasks = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Task));
-        
-        const now = new Date().toISOString();
-        
+
+        const nowIso = new Date().toISOString();
+
+        const [todoSnap, inProgressSnap, completedSnap, overdueSnap, recentTasksSnap] = await Promise.all([
+          getCountFromServer(query(tasksBaseQuery, where('status', '==', 'todo'))),
+          getCountFromServer(query(tasksBaseQuery, where('status', '==', 'in-progress'))),
+          getCountFromServer(query(tasksBaseQuery, where('status', '==', 'completed'))),
+          getCountFromServer(
+            query(
+              tasksBaseQuery,
+              where('status', 'in', ['todo', 'in-progress']),
+              where('dueDate', '<', nowIso)
+            )
+          ),
+          getDocs(query(tasksBaseQuery, orderBy('createdAt', 'desc'), limit(5))),
+        ]);
+
+        const todo = todoSnap.data().count;
+        const inProgress = inProgressSnap.data().count;
+        const completed = completedSnap.data().count;
+        const overdue = overdueSnap.data().count;
+
         setStats({
-          total: tasks.length,
-          todo: tasks.filter(t => t.status === 'todo').length,
-          inProgress: tasks.filter(t => t.status === 'in-progress').length,
-          completed: tasks.filter(t => t.status === 'completed').length,
-          overdue: tasks.filter(t => t.status !== 'completed' && t.dueDate && t.dueDate < now).length
+          total: todo + inProgress + completed,
+          todo,
+          inProgress,
+          completed,
+          overdue,
         });
 
-        // Get 5 most recent tasks
-        setRecentTasks(tasks.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5));
+        setRecentTasks(recentTasksSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Task)));
       } catch (err) {
         console.error(err);
       } finally {
@@ -64,7 +77,7 @@ export function Dashboard({ onSelectProject }: DashboardProps) {
     { label: 'Total Tasks', value: stats.total, icon: ListChecks, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'In Progress', value: stats.inProgress, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
     { label: 'Completed', value: stats.completed, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Overdue', value: stats.stats_overdue || stats.overdue, icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50' },
+    { label: 'Overdue', value: stats.overdue, icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50' },
   ];
 
   if (loading) {
