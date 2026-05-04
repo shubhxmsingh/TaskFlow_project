@@ -13,14 +13,13 @@ const envFirebaseConfig = {
   firestoreDatabaseId: import.meta.env.VITE_FIREBASE_DATABASE_ID,
 };
 
-const requiredKeys: Array<keyof typeof envFirebaseConfig> = [
+const requiredKeys: Array<Exclude<keyof typeof envFirebaseConfig, 'firestoreDatabaseId'>> = [
   'apiKey',
   'authDomain',
   'projectId',
   'storageBucket',
   'messagingSenderId',
   'appId',
-  'firestoreDatabaseId',
 ];
 
 const isProd = import.meta.env.PROD;
@@ -52,5 +51,7 @@ console.info(
 );
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = firebaseConfig.firestoreDatabaseId
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
 export const auth = getAuth(app);
